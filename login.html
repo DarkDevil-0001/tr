@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TreeViz | Sign In</title>
+    <link rel="stylesheet" href="login.css">
+    <link rel="logo" href="logo.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="particles-js"></div>
+    
+    <!-- Animated Background Nodes -->
+    <div class="nodes-container" id="nodesContainer"></div>
+
+    <!-- Main Login Container -->
+    <div class="login-container">
+        <!-- Left Side: Brand/Info -->
+        <div class="brand-side">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <h1>TreeViz</h1>
+                <p class="tagline">Welcome Back to Interactive Learning</p>
+            </div>
+
+            <div class="features">
+                <div class="features-scroll">
+                    <div class="feature">
+                        <i class="fas fa-code-branch"></i>
+                        <div class="feature-text">
+                            <h3>Continue Learning</h3>
+                            <p>Pick up where you left off with your saved visualizations</p>
+                        </div>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-chart-line"></i>
+                        <div class="feature-text">
+                            <h3>Track Progress</h3>
+                            <p>Monitor your mastery of data structures and algorithms</p>
+                        </div>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-bookmark"></i>
+                        <div class="feature-text">
+                            <h3>Saved Examples</h3>
+                            <p>Access your personalized tree and graph examples</p>
+                        </div>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-award"></i>
+                        <div class="feature-text">
+                            <h3>Achievements</h3>
+                            <p>Unlock badges as you progress through challenges</p>
+                        </div>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-clock"></i>
+                        <div class="feature-text">
+                            <h3>24/7 Access</h3>
+                            <p>Learn anytime, anywhere with your personal account</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="testimonial">
+                <i class="fas fa-quote-left"></i>
+                <p>"TreeViz made understanding complex data structures so much easier. The visualizations are incredible!"</p>
+                <div class="testimonial-author">
+                    <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="User" class="author-img">
+                    <div>
+                        <strong>Sarah Chen</strong>
+                        <span>Computer Science Student</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Login Form -->
+        <div class="login-side">
+            <div class="form-header">
+                <h2>Welcome Back!</h2>
+                <p>Sign in to continue your TreeViz journey</p>
+            </div>
+
+            <div class="form-wrapper">
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email" class="required">Email Address</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" id="email" class="form-control" placeholder="john.doe@example.com" required autofocus>
+                        </div>
+                        <div class="field-error" id="emailError">Please enter a valid email address</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="required">Password</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="password" class="form-control" placeholder="Enter your password" required>
+                            <i class="fas fa-eye toggle-password" id="togglePassword"></i>
+                        </div>
+                        <div class="field-error" id="passwordError">Password is required</div>
+                    </div>
+
+                    <div class="form-options">
+                        <div class="remember-checkbox">
+                            <input type="checkbox" id="remember">
+                            <label for="remember">Remember me</label>
+                        </div>
+                        <a href="#" id="forgotPasswordLink" class="forgot-link">Forgot Password?</a>
+                    </div>
+
+                    <button type="submit" class="btn-login">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Sign In
+                    </button>
+
+                    <div class="divider">
+                        <span>Or continue with</span>
+                    </div>
+
+                    <div class="social-login">
+                        <button type="button" class="btn-social btn-google">
+                            <i class="fab fa-google"></i>
+                            Google
+                        </button>
+                        <button type="button" class="btn-social btn-github">
+                            <i class="fab fa-github"></i>
+                            GitHub
+                        </button>
+                        <button type="button" class="btn-social btn-microsoft">
+                            <i class="fab fa-microsoft"></i>
+                            Microsoft
+                        </button>
+                    </div>
+
+                    <div class="signup-link">
+                        <p>Don't have an account? <a href="signup.html" id="signupLink">Create free account</a></p>
+                    </div>
+
+                    <div class="demo-credentials">
+                        <p><i class="fas fa-flask"></i> Demo Credentials:</p>
+                        <small>Email: demo@treeviz.com | Password: demo1234</small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="login.js"></script>
+</body>
+</html>
