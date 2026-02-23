@@ -151,7 +151,7 @@ document.getElementById('signupForm').addEventListener('submit', async function 
 
     try {
         // Send data to backend
-        const response = await fetch('http://localhost:5000/api/signup', {
+       const response = await fetch('/api/signup', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
