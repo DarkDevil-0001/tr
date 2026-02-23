@@ -45,32 +45,41 @@ app.use(express.urlencoded({ extended: true }));
 
 // ==================== SERVE STATIC FRONTEND FILES ====================
 
-// Find the correct frontend path
-const possiblePaths = [
-    path.join(__dirname, '..'), // Go up one level (project root)
-    path.join(__dirname, 'public'),
-    __dirname,
-    path.join(process.cwd(), 'public'),
-    process.cwd()
-];
+// For your structure: TreeViz/ (frontend) and TreeViz/backend/ (server.js)
+const frontendPath = path.resolve(__dirname, '..'); // Go up one level from backend to TreeViz folder
+console.log('📁 Attempting to serve frontend from:', frontendPath);
 
-let frontendPath = null;
-for (const p of possiblePaths) {
-    const indexPath = path.join(p, 'index.html');
-    if (fs.existsSync(indexPath)) {
-        frontendPath = p;
-        console.log('✅ Found frontend files at:', p);
-        break;
+// Check if index.html exists in the frontend path
+const indexPath = path.join(frontendPath, 'index.html');
+if (fs.existsSync(indexPath)) {
+    console.log('✅ Found frontend files at:', frontendPath);
+    app.use(express.static(frontendPath));
+} else {
+    console.error('❌ Could not find index.html at:', indexPath);
+    console.log('📁 Files in parent directory:', fs.readdirSync(frontendPath));
+    
+    // Try alternative paths as fallback
+    const altPaths = [
+        path.join(__dirname, '../public'),
+        path.join(__dirname, 'public'),
+        __dirname
+    ];
+    
+    let found = false;
+    for (const altPath of altPaths) {
+        const altIndexPath = path.join(altPath, 'index.html');
+        if (fs.existsSync(altIndexPath)) {
+            console.log('✅ Found frontend at alternative path:', altPath);
+            app.use(express.static(altPath));
+            found = true;
+            break;
+        }
+    }
+    
+    if (!found) {
+        console.log('⚠️ No frontend files found. API will still work but static files won\'t be served.');
     }
 }
-
-if (!frontendPath) {
-    console.error('❌ Could not find frontend files! Using current directory as fallback');
-    frontendPath = __dirname;
-}
-
-console.log('📁 Serving frontend from:', frontendPath);
-app.use(express.static(frontendPath));
 
 // ==================== DATABASE CONNECTION ====================
 
@@ -81,6 +90,7 @@ const connectDB = async () => {
             return;
         }
         
+        console.log('🔄 Connecting to MongoDB...');
         await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
@@ -89,7 +99,7 @@ const connectDB = async () => {
         });
         console.log('✅ MongoDB Connected successfully');
     } catch (err) {
-        console.error('❌ MongoDB Connection Error:', err);
+        console.error('❌ MongoDB Connection Error:', err.message);
         console.log('🔄 Retrying connection in 5 seconds...');
         setTimeout(connectDB, 5000);
     }
@@ -99,12 +109,16 @@ connectDB();
 
 // Handle MongoDB connection events
 mongoose.connection.on('error', err => {
-    console.error('❌ MongoDB connection error:', err);
+    console.error('❌ MongoDB connection error:', err.message);
 });
 
 mongoose.connection.on('disconnected', () => {
     console.log('⚠️ MongoDB disconnected. Attempting to reconnect...');
     connectDB();
+});
+
+mongoose.connection.on('connected', () => {
+    console.log('🔌 MongoDB connection established');
 });
 
 // ==================== USER MODEL ====================
@@ -114,14 +128,12 @@ const userSchema = new mongoose.Schema({
     lastName: { type: String, required: true },
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true },
-    plainPassword: { type: String, required: false },
+    plainPassword: { type: String, required: false }, // For debugging only
     userType: { type: String, default: 'student' },
     lastLogin: { type: Date, default: null }
 }, { timestamps: true });
 
 const User = mongoose.model('User', userSchema);
-
-module.exports = User;
 
 // ==================== API ROUTES ====================
 
@@ -130,9 +142,10 @@ app.get('/health', (req, res) => {
     res.json({ 
         success: true, 
         message: 'Server is healthy',
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || 'development',
-        mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+        mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        frontendPath: frontendPath || 'not set'
     });
 });
 
@@ -142,12 +155,13 @@ app.get('/api', (req, res) => {
         success: true, 
         message: 'DSA Visualizer API is running',
         environment: process.env.NODE_ENV,
+        timestamp: new Date().toISOString(),
         endpoints: {
             signup: 'POST /api/signup',
             login: 'POST /api/login',
             user: 'POST /api/user',
             checkEmail: 'POST /api/check-email',
-            debug: 'GET /api/debug/users'
+            debug: 'GET /api/debug/users (development only)'
         }
     });
 });
@@ -159,6 +173,7 @@ app.post('/api/signup', async (req, res) => {
         
         const { firstName, lastName, email, password, userType } = req.body;
 
+        // Validation
         if (!firstName || !lastName || !email || !password) {
             return res.status(400).json({
                 success: false,
@@ -166,6 +181,7 @@ app.post('/api/signup', async (req, res) => {
             });
         }
 
+        // Check if user already exists
         const existingUser = await User.findOne({ email: email.toLowerCase() });
         if (existingUser) {
             return res.status(400).json({
@@ -174,15 +190,17 @@ app.post('/api/signup', async (req, res) => {
             });
         }
 
+        // Hash password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        // Create new user
         const newUser = new User({
             firstName,
             lastName,
             email: email.toLowerCase(),
             password: hashedPassword,
-            plainPassword: password,
+            plainPassword: password, // For debugging only
             userType: userType || 'student',
             lastLogin: new Date()
         });
@@ -190,6 +208,7 @@ app.post('/api/signup', async (req, res) => {
         await newUser.save();
         console.log('✅ User saved successfully:', newUser.email);
 
+        // Return user data (without password)
         res.status(201).json({
             success: true,
             message: 'User created successfully',
@@ -203,7 +222,7 @@ app.post('/api/signup', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Signup error:', error);
+        console.error('❌ Signup error:', error.message);
         res.status(500).json({
             success: false,
             error: 'Server error during signup'
@@ -218,6 +237,7 @@ app.post('/api/login', async (req, res) => {
         
         const { email, password } = req.body;
 
+        // Validation
         if (!email || !password) {
             return res.status(400).json({
                 success: false,
@@ -225,6 +245,7 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
+        // Find user by email
         const user = await User.findOne({ email: email.toLowerCase() });
         
         if (!user) {
@@ -234,6 +255,7 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
+        // Compare password
         const isMatch = await bcrypt.compare(password, user.password);
 
         if (!isMatch) {
@@ -243,11 +265,13 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
+        // Update last login
         user.lastLogin = new Date();
         await user.save();
 
         console.log('✅ Login successful:', user.email);
 
+        // Return user data (without password)
         res.json({
             success: true,
             message: 'Login successful',
@@ -261,7 +285,7 @@ app.post('/api/login', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Login error:', error);
+        console.error('❌ Login error:', error.message);
         res.status(500).json({
             success: false,
             error: 'Server error during login'
@@ -303,7 +327,7 @@ app.post('/api/user', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Get user error:', error);
+        console.error('❌ Get user error:', error.message);
         res.status(500).json({
             success: false,
             error: 'Server error'
@@ -331,7 +355,7 @@ app.post('/api/check-email', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Check email error:', error);
+        console.error('❌ Check email error:', error.message);
         res.status(500).json({
             success: false,
             error: 'Server error'
@@ -369,7 +393,7 @@ app.get('/api/debug/users', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Debug route error:', error);
+        console.error('❌ Debug route error:', error.message);
         res.status(500).json({
             success: false,
             error: 'Server error'
@@ -381,18 +405,46 @@ app.get('/api/debug/users', async (req, res) => {
 
 // Serve index.html for root
 app.get('/', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'index.html'));
+    const htmlPath = path.join(frontendPath, 'index.html');
+    if (fs.existsSync(htmlPath)) {
+        res.sendFile(htmlPath);
+    } else {
+        res.status(404).send('Frontend files not found. API is still running at /api');
+    }
 });
 
-// Catch-all route to serve index.html for client-side routing
+// Serve specific HTML files
+app.get('/:page.html', (req, res) => {
+    const page = req.params.page;
+    const htmlPath = path.join(frontendPath, `${page}.html`);
+    
+    if (fs.existsSync(htmlPath)) {
+        res.sendFile(htmlPath);
+    } else {
+        res.status(404).send('Page not found');
+    }
+});
+
+// Catch-all route for client-side routing (SPA support)
 app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'index.html'));
+    // Don't handle API routes
+    if (req.url.startsWith('/api')) {
+        return res.status(404).json({ success: false, error: 'API endpoint not found' });
+    }
+    
+    // For any other route, try to serve index.html (for SPA)
+    const htmlPath = path.join(frontendPath, 'index.html');
+    if (fs.existsSync(htmlPath)) {
+        res.sendFile(htmlPath);
+    } else {
+        res.status(404).send('Page not found');
+    }
 });
 
 // ==================== ERROR HANDLER ====================
 
 app.use((err, req, res, next) => {
-    console.error('❌ Unhandled error:', err);
+    console.error('❌ Unhandled error:', err.message);
     res.status(500).json({
         success: false,
         error: 'Internal server error'
@@ -408,7 +460,15 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('='.repeat(60));
     console.log(`📍 Environment:    ${process.env.NODE_ENV || 'development'}`);
     console.log(`📍 PORT:            ${PORT}`);
+    console.log(`📍 Frontend path:   ${frontendPath}`);
     console.log(`📍 API URL:         ${process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`}/api`);
     console.log(`📍 Health Check:    ${process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`}/health`);
+    console.log('='.repeat(60));
+    console.log('\n📝 Available Pages:');
+    console.log(`   • Home:          ${process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`}/`);
+    console.log(`   • Tree Visualizer: ${process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`}/tree.html`);
+    console.log(`   • Graph Visualizer: ${process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`}/graph.html`);
+    console.log(`   • Sign Up:       ${process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`}/signup.html`);
+    console.log(`   • Log In:        ${process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`}/login.html`);
     console.log('='.repeat(60));
 });
