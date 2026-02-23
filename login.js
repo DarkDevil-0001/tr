@@ -280,7 +280,7 @@ function checkLoggedIn() {
 // Login function - Connected to backend
 async function loginUser(email, password) {
     try {
-        const response = await fetch('http://localhost:5000/api/login', {
+        const response = await fetch('/api/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -554,4 +554,5 @@ document.querySelectorAll('.form-control').forEach(input => {
             this.parentElement.querySelector('i')?.style.setProperty('color', '#1a237e');
         }
     });
+
 });
