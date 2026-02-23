@@ -23,7 +23,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const frontendPath = path.join(__dirname, '..');
 console.log('📁 Serving frontend from:', frontendPath);
-app.use('/api', ...)  // Your API routes
+
 
 // ==================== DATABASE CONNECTION ====================
 
